@@ -7,3 +7,4 @@ requests
 matplotlib
 scipy
 python-bcb
+lxml
