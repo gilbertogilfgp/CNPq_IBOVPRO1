@@ -265,6 +265,7 @@ with aba_tabela:
 # --- ABA 3: RANKING ---
 with aba_retorno:
     st.markdown("### Líderes e retardatários do mercado")
+
     with st.form("form_rank"):
         r1, r2 = st.columns(2)
         with r1:
@@ -275,38 +276,91 @@ with aba_retorno:
 
     if btn_rank:
         hoje = datetime.today()
-        if tempo_ret == "Dias": inicio = hoje - timedelta(days=qtd_ret)
-        elif tempo_ret == "Meses": inicio = hoje - relativedelta(months=qtd_ret)
-        else: inicio = hoje - relativedelta(years=qtd_ret)
-        
-        dados_retorno = []
-        progress_text = "Mapeando Ativos..."
-        my_bar = st.progress(0, text=progress_text)
-        
-        with st.spinner("Carregando...."):
-            for i, ticker in enumerate(ibov_tickers):
-                df_r = yf.Ticker(ticker + ".SA").history(start=inicio.strftime("%Y-%m-%d"), end=hoje.strftime("%Y-%m-%d"))
-                if not df_r.empty:
-                    ret = np.log(df_r["Close"].iloc[-1] / df_r["Open"].iloc[0]) * 100
-                    dados_retorno.append([ticker, ret])
-                my_bar.progress((i + 1) / len(ibov_tickers))
-        
-        st.session_state.dados_retorno = dados_retorno
-        my_bar.empty()
+        fim_busca = hoje + timedelta(days=1)
+
+        if tempo_ret == "Dias":
+            inicio = hoje - timedelta(days=int(qtd_ret))
+        elif tempo_ret == "Meses":
+            inicio = hoje - relativedelta(months=int(qtd_ret))
+        else:
+            inicio = hoje - relativedelta(years=int(qtd_ret))
+
+        tickers_sa = [f"{ticker}.SA" for ticker in ibov_tickers]
+
+        try:
+            with st.spinner("Carregando ranking de mercado..."):
+                dados = yf.download(
+                    tickers=tickers_sa,
+                    start=inicio.strftime("%Y-%m-%d"),
+                    end=fim_busca.strftime("%Y-%m-%d"),
+                    auto_adjust=False,
+                    progress=False,
+                    group_by="ticker",
+                    threads=False
+                )
+
+            dados_retorno = []
+
+            if dados.empty:
+                st.warning("Não foi possível carregar dados do Yahoo Finance para o período selecionado.")
+            else:
+                for ticker in ibov_tickers:
+                    ticker_sa = f"{ticker}.SA"
+
+                    try:
+                        if ticker_sa not in dados.columns.get_level_values(0):
+                            continue
+
+                        df_ticker = dados[ticker_sa].copy()
+
+                        if df_ticker.empty:
+                            continue
+
+                        df_ticker = df_ticker[["Open", "Close"]].dropna()
+
+                        if len(df_ticker) < 2:
+                            continue
+
+                        preco_inicial = df_ticker["Open"].iloc[0]
+                        preco_final = df_ticker["Close"].iloc[-1]
+
+                        if pd.isna(preco_inicial) or pd.isna(preco_final):
+                            continue
+
+                        if preco_inicial <= 0 or preco_final <= 0:
+                            continue
+
+                        ret = np.log(preco_final / preco_inicial) * 100
+                        dados_retorno.append([ticker, ret])
+
+                    except Exception:
+                        continue
+
+                st.session_state.dados_retorno = dados_retorno
+
+                if not dados_retorno:
+                    st.warning("Nenhum ativo retornou dados válidos para esse período.")
+        except Exception as e:
+            st.error(f"Erro ao consultar o Yahoo Finance: {e}")
 
     if "dados_retorno" in st.session_state and st.session_state.dados_retorno:
         df_rank = pd.DataFrame(st.session_state.dados_retorno, columns=["Ticker", "Retorno (%)"])
         toggle = st.toggle("ORDEM CRESCENTE", value=False)
         df_rank = df_rank.sort_values("Retorno (%)", ascending=toggle)
-        
+
         st.dataframe(
-            df_rank.style.format({"Retorno (%)": "{:.2f}%"}).background_gradient(cmap="RdBu", subset=["Retorno (%)"]),
-            use_container_width=True, hide_index=True
+            df_rank.style
+                .format({"Retorno (%)": "{:.2f}%"})
+                .background_gradient(cmap="RdBu", subset=["Retorno (%)"]),
+            use_container_width=True,
+            hide_index=True
         )
+
 
 # --- FOOTER ---
 st.markdown("""
     <div class="terminal-footer">
         SISTEMA DE ANÁLISE QUANTITATIVA IBOV PRO | VERSION 2.4.0 | DATA VIA YFINANCE PROTOCOL
     </div>
+
 """, unsafe_allow_html=True)
