@@ -330,7 +330,7 @@ with aba_retorno:
                         if preco_inicial <= 0 or preco_final <= 0:
                             continue
 
-                        ret = np.log(preco_final / preco_inicial) * 100
+                        ret = ((preco_final / preco_inicial)-1) * 100
                         dados_retorno.append([ticker, ret])
 
                     except Exception:
@@ -364,3 +364,4 @@ st.markdown("""
     </div>
 
 """, unsafe_allow_html=True)
+
