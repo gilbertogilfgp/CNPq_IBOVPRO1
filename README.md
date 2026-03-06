@@ -1,6 +1,8 @@
 # IBOV PRO - OBINVEST
 IBOV PRO é uma aplicação web interativa desenvolvida em Python com Streamlit, voltada ao apoio educacional e acadêmico na análise de ativos financeiros listados no Ibovespa. O projeto faz parte de uma iniciativa acadêmica desenvolvida em parceria com o grupo OBINVEST, visando a produção científica sobre visualização financeira, análise de mercado e educação financeira baseada em dados, explorando dashboards interativos e métodos quantitativos. O IBOV PRO oferece ferramentas visuais e estatísticas para apoiar a tomada de decisão de jovens investidores e estudantes de finanças.
 
+acesse: https://cnpq-ibovpro1.streamlit.app/
+
 ---
 
 # OBJETIVOS
